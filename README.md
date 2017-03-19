@@ -10,4 +10,5 @@ Used for testing mechanics/motors/driver during CNC construction.
 * potentiometer for adjusting speed/signal freqeuncy (approx 100Hz to 5KHz).
 
 ### Example Usage
-![example usage](https://github.com/rubienr/yafg/blob/master/schema/yafg-sketch.jpg)
+![example usage](https://github.com/rubienr/yafg/blob/master/meta/yafg-sketch.jpg)
+![hardware implementation](https://github.com/rubienr/yafg/blob/master/meta/hw-example.jpg)
