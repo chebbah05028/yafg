@@ -12,5 +12,6 @@ YAFG is useful when putting a CNC mechanics, stepper motors or stepper driver in
 * potentiometer for adjusting speed/signal freqeuncy (approximately 100Hz to 6KHz).
 
 ### Example Usage
+* ![demonstration video](https://raw.githubusercontent.com/rubienr/yafg/master/meta/cnc-motor-driver-test.mov)
 ![example usage](https://github.com/rubienr/yafg/blob/master/meta/yafg-sketch.jpg)
 ![hardware implementation](https://github.com/rubienr/yafg/blob/master/meta/hw-example.jpg)
