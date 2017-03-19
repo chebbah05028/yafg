@@ -16,9 +16,21 @@
 #define DIRC DDRC
 #define DIRD DDRD
 
-#define DISABLE_TIMER_COUNTER0 (TCCR0B &= ~((1 << CS02) | (1 << CS01) | (1 << CS00)))
-#define DISABLE_TIMER_COUNTER1 (TCCR1B &= ~((1 << CS12) | (1 << CS11) | (1 << CS10)))
-#define DISABLE_TIMER_COUNTER2 (TCCR2B &= ~((1 << CS22) | (1 << CS21) | (1 << CS20)))
+#define TIMER_COUNTER0_CS_MASK ((1 << CS02) | (1 << CS01) | (1 << CS00))
+#define TIMER_COUNTER1_CS_MASK ((1 << CS12) | (1 << CS11) | (1 << CS10))
+#define TIMER_COUNTER2_CS_MASK ((1 << CS22) | (1 << CS21) | (1 << CS20))
+
+#define TIMER_COUNTER0_CURRENT_CS_MASK (TCCR0B & TIMER_COUNTER0_CS_MASK)
+#define TIMER_COUNTER1_CURRENT_CS_MASK (TCCR1B & TIMER_COUNTER1_CS_MASK)
+#define TIMER_COUNTER2_CURRENT_CS_MASK (TCCR2B & TIMER_COUNTER2_CS_MASK)
+
+#define RESTORE_TIMER_COUNTER0_CS_MASK(mask) (TCCR0B |= (mask))
+#define RESTORE_TIMER_COUNTER1_CS_MASK(mask) (TCCR1B |= (mask))
+#define RESTORE_TIMER_COUNTER1_CS_MASK(mask) (TCCR2B |= (mask))
+
+#define DISABLE_TIMER_COUNTER0 (TCCR0B &= ~TIMER_COUNTER0_CS_MASK)
+#define DISABLE_TIMER_COUNTER1 (TCCR1B &= ~TIMER_COUNTER1_CS_MASK)
+#define DISABLE_TIMER_COUNTER2 (TCCR2B &= ~TIMER_COUNTER2_CS_MASK)
 
 #define ENABLE_TIMER_COUNTER0 (TCCR0B |= ((1 << CS02) | (0 << CS01) | (0 << CS00)))
 #define ENABLE_TIMER_COUNTER1 (TCCR1B |= ((1 << CS12) | (0 << CS11) | (0 << CS10)))
@@ -120,20 +132,52 @@ void setup() {
 // read current ADC value
 void readPotentiometerValue(void) {
   //while (0 != (ADCSRA | (1 << ADSC)));
-  globalStates.potentiometer.adcValue = ADC >> 2;
+  uint8_t newAdcValue = (ADC >> 2);
   ADCSRA |= (1 << ADSC);
+  
+  // update only on exceeded threshold
+  if ( (newAdcValue < globalStates.potentiometer.adcValue + 5) &&
+       (newAdcValue > globalStates.potentiometer.adcValue - 5) ) {
+        return; 
+  }
+  
+  // cap value 
+  if (newAdcValue < 5) {
+      newAdcValue = 5;
+  } else if (newAdcValue > 250) {
+      newAdcValue = 250;
+  }
+  
+  globalStates.potentiometer.adcValue = newAdcValue;
+  
 }
 
 // update signal generating interrupt frequency according to the potentiometer ADC value
 void updateInterruptFrequency(void) {
-
-  if (  globalStates.potentiometer.adcValue <= 5) {
-      globalStates.potentiometer.adcValue = 5;
-  }
   
-  OCR0A = (uint8_t) globalStates.potentiometer.adcValue;  
-  OCR1A = (uint8_t) globalStates.potentiometer.adcValue;
-  OCR2A = (uint8_t) globalStates.potentiometer.adcValue;
+  uint8_t timerCounterCsMask = TIMER_COUNTER0_CURRENT_CS_MASK;
+  DISABLE_TIMER_COUNTER0;
+    OCR0A = globalStates.potentiometer.adcValue;
+    if (TCNT0 > OCR0A) {
+      TCNT0 = OCR0A;
+    }
+  RESTORE_TIMER_COUNTER0_CS_MASK(timerCounterCsMask);
+
+  timerCounterCsMask = TIMER_COUNTER1_CURRENT_CS_MASK;  
+  DISABLE_TIMER_COUNTER1;
+    OCR1A = globalStates.potentiometer.adcValue;
+    if (TCNT1 > OCR1A) {
+      TCNT1 = OCR1A;
+    }
+  RESTORE_TIMER_COUNTER1_CS_MASK(timerCounterCsMask);
+  
+  timerCounterCsMask = TIMER_COUNTER2_CURRENT_CS_MASK;
+  DISABLE_TIMER_COUNTER2;
+    OCR2A = globalStates.potentiometer.adcValue;
+    if (TCNT2 > OCR2A) {
+      TCNT2 = OCR2A;
+    }
+  RESTORE_TIMER_COUNTER2_CS_MASK(timerCounterCsMask);;
 }
 
 // read button states and translate to motor directions
@@ -216,7 +260,7 @@ void updateMotorState(void) {
 
 void loop(void) {
   while (1) {
-    _delay_ms(10);
+    _delay_ms(100);
     
     readPotentiometerValue();
     updateInterruptFrequency();
