@@ -26,7 +26,7 @@
 
 #define RESTORE_TIMER_COUNTER0_CS_MASK(mask) (TCCR0B |= (mask))
 #define RESTORE_TIMER_COUNTER1_CS_MASK(mask) (TCCR1B |= (mask))
-#define RESTORE_TIMER_COUNTER1_CS_MASK(mask) (TCCR2B |= (mask))
+#define RESTORE_TIMER_COUNTER2_CS_MASK(mask) (TCCR2B |= (mask))
 
 #define DISABLE_TIMER_COUNTER0 (TCCR0B &= ~TIMER_COUNTER0_CS_MASK)
 #define DISABLE_TIMER_COUNTER1 (TCCR1B &= ~TIMER_COUNTER1_CS_MASK)
@@ -132,20 +132,20 @@ void setup() {
 // read current ADC value
 void readPotentiometerValue(void) {
   //while (0 != (ADCSRA | (1 << ADSC)));
-  uint8_t newAdcValue = (ADC >> 2);
+  uint8_t newAdcValue = (uint8_t)(ADC >> 2);
   ADCSRA |= (1 << ADSC);
   
   // update only on exceeded threshold
-  if ( (newAdcValue < globalStates.potentiometer.adcValue + 5) &&
-       (newAdcValue > globalStates.potentiometer.adcValue - 5) ) {
+  if ( (newAdcValue < globalStates.potentiometer.adcValue + 2) &&
+       (newAdcValue > globalStates.potentiometer.adcValue - 2) ) {
         return; 
   }
   
   // cap value 
-  if (newAdcValue < 5) {
-      newAdcValue = 5;
-  } else if (newAdcValue > 250) {
-      newAdcValue = 250;
+  if (newAdcValue < 4) {
+      newAdcValue = 4;
+  } else if (newAdcValue > 253) {
+      newAdcValue = 253;
   }
   
   globalStates.potentiometer.adcValue = newAdcValue;
@@ -159,7 +159,7 @@ void updateInterruptFrequency(void) {
   DISABLE_TIMER_COUNTER0;
     OCR0A = globalStates.potentiometer.adcValue;
     if (TCNT0 > OCR0A) {
-      TCNT0 = OCR0A;
+      TCNT0 = OCR0A - 1;
     }
   RESTORE_TIMER_COUNTER0_CS_MASK(timerCounterCsMask);
 
@@ -167,15 +167,15 @@ void updateInterruptFrequency(void) {
   DISABLE_TIMER_COUNTER1;
     OCR1A = globalStates.potentiometer.adcValue;
     if (TCNT1 > OCR1A) {
-      TCNT1 = OCR1A;
-    }
+      TCNT1 = OCR1A - 1;
+    } 
   RESTORE_TIMER_COUNTER1_CS_MASK(timerCounterCsMask);
   
   timerCounterCsMask = TIMER_COUNTER2_CURRENT_CS_MASK;
   DISABLE_TIMER_COUNTER2;
     OCR2A = globalStates.potentiometer.adcValue;
     if (TCNT2 > OCR2A) {
-      TCNT2 = OCR2A;
+      TCNT2 = OCR2A - 1;
     }
   RESTORE_TIMER_COUNTER2_CS_MASK(timerCounterCsMask);;
 }
